@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Secret Santa - Reveal Your Recipient</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #0b3b2e 0%, #062a3f 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        position: relative;
+        overflow-x: hidden;
+      }
+
+      /* Snow effect */
+      .snow {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      .snowflake {
+        position: absolute;
+        top: -10px;
+        z-index: 1;
+        user-select: none;
+        cursor: default;
+        animation: snowfall linear forwards;
+        opacity: 0.8;
+      }
+
+      @keyframes snowfall {
+        to {
+          transform: translateY(100vh) translateX(100px);
+          opacity: 0;
+        }
+      }
+
+      /* Confetti */
+      .confetti {
+        position: fixed;
+        width: 10px;
+        height: 10px;
+        z-index: 999;
+        pointer-events: none;
+      }
+
+      /* SVG Garland */
+      .garland-svg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 150px;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .container {
+        max-width: 600px;
+        width: 100%;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        z-index: 10;
+        position: relative;
+        text-align: center;
+      }
+
+      .header {
+        margin-bottom: 30px;
+      }
+
+      .header h1 {
+        font-size: 2.5em;
+        color: #0b3b2e;
+        margin-bottom: 10px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .header p {
+        color: #666;
+        font-size: 1.05em;
+      }
+
+      .gift-section {
+        margin: 30px 0;
+      }
+
+      .gift-box {
+        width: 200px;
+        height: 200px;
+        margin: 0 auto 30px;
+        cursor: pointer;
+        perspective: 1000px;
+        transition: transform 0.3s ease;
+      }
+
+      .gift-box:hover {
+        transform: scale(1.05);
+      }
+
+      .gift-box-inner {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        transform-style: preserve-3d;
+        transition: transform 0.6s;
+      }
+
+      .gift-box.revealed .gift-box-inner {
+        transform: rotateY(90deg) rotateX(45deg) rotateZ(-15deg) scale(0.95);
+      }
+
+      .gift-front,
+      .gift-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        backface-visibility: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .gift-front {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ff1744 100%);
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(255, 23, 68, 0.4);
+        font-size: 80px;
+        z-index: 2;
+      }
+
+      .gift-back {
+        transform: rotateY(180deg);
+        background: linear-gradient(135deg, #ffd700 0%, #ffc700 100%);
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(255, 199, 0, 0.4);
+      }
+
+      .gift-ribbon {
+        position: absolute;
+        background: linear-gradient(135deg, #00ff00 0%, #00cc00 100%);
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+
+      .gift-ribbon-h {
+        width: 100%;
+        height: 30px;
+        z-index: 10;
+      }
+
+      .gift-ribbon-v {
+        width: 30px;
+        height: 100%;
+        z-index: 9;
+      }
+
+      .gift-bow {
+        position: absolute;
+        width: 50px;
+        height: 50px;
+        background: linear-gradient(135deg, #ffd700 0%, #ffc700 100%);
+        border-radius: 50%;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 11;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      .input-section {
+        margin: 30px 0;
+      }
+
+      .input-section label {
+        display: block;
+        color: #0b3b2e;
+        font-weight: 600;
+        margin-bottom: 15px;
+        font-size: 1.1em;
+      }
+
+      .input-group {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+
+      input[type="text"] {
+        flex: 1;
+        padding: 15px;
+        border: 2px solid #0b3b2e;
+        border-radius: 10px;
+        font-size: 1.1em;
+        font-weight: 600;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        transition: all 0.3s ease;
+        background: white;
+        color: #0b3b2e;
+      }
+
+      input[type="text"]:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(11, 59, 46, 0.2);
+        border-color: #06b6d4;
+      }
+
+      input[type="text"]::placeholder {
+        color: #999;
+        opacity: 1;
+      }
+
+      button {
+        padding: 15px 30px;
+        font-size: 1.1em;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+        color: white;
+      }
+
+      .btn-primary:hover:not(:disabled) {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(6, 182, 212, 0.4);
+      }
+
+      .btn-primary:active:not(:disabled) {
+        transform: translateY(-1px);
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .result-section {
+        display: none;
+        margin-top: 30px;
+        padding: 25px;
+        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+        border-radius: 15px;
+        border: 2px solid #10b981;
+        animation: slideIn 0.5s ease;
+      }
+
+      .result-section.show {
+        display: block;
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .result-section h2 {
+        color: #065f46;
+        font-size: 1.3em;
+        margin-bottom: 10px;
+      }
+
+      .recipient-name {
+        font-size: 2.5em;
+        font-weight: bold;
+        color: #047857;
+        margin: 20px 0;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .message {
+        padding: 15px 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        display: none;
+        animation: slideIn 0.3s ease;
+      }
+
+      .message.show {
+        display: block;
+      }
+
+      .message.success {
+        background: #d1fae5;
+        color: #065f46;
+        border-left: 4px solid #10b981;
+      }
+
+      .message.error {
+        background: #fee2e2;
+        color: #7f1d1d;
+        border-left: 4px solid #ef4444;
+      }
+
+      .message.loading {
+        background: #dbeafe;
+        color: #1e40af;
+        border-left: 4px solid #3b82f6;
+      }
+
+      .loading-spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top: 2px solid white;
+        animation: spin 0.8s linear infinite;
+        margin-right: 10px;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .instructions {
+        background: #f3f4f6;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+        border-left: 4px solid #0b3b2e;
+      }
+
+      .instructions h3 {
+        color: #0b3b2e;
+        margin-bottom: 10px;
+      }
+
+      .instructions p {
+        color: #666;
+        font-size: 0.95em;
+        line-height: 1.6;
+      }
+
+      @media (max-width: 600px) {
+        .container {
+          padding: 25px;
+        }
+
+        .header h1 {
+          font-size: 1.8em;
+        }
+
+        .gift-box {
+          width: 150px;
+          height: 150px;
+        }
+
+        .gift-front {
+          font-size: 60px;
+        }
+
+        input[type="text"] {
+          font-size: 1em;
+        }
+
+        button {
+          padding: 12px 20px;
+          font-size: 1em;
+        }
+
+        .recipient-name {
+          font-size: 1.8em;
+        }
+
+        .input-group {
+          flex-direction: column;
+        }
+
+        button {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Snow background -->
+    <div class="snow" id="snow"></div>
+
+    <!-- SVG Garland -->
+    <svg
+      class="garland-svg"
+      viewBox="0 0 1200 150"
+      preserveAspectRatio="xMidYMid slice"
+    >
+      <defs>
+        <linearGradient id="garlandGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color: #d4af37; stop-opacity: 1" />
+          <stop offset="50%" style="stop-color: #ffd700; stop-opacity: 1" />
+          <stop offset="100%" style="stop-color: #d4af37; stop-opacity: 1" />
+        </linearGradient>
+      </defs>
+
+      <!-- Garland line -->
+      <path
+        d="M0,50 Q150,20 300,50 T600,50 T900,50 T1200,50"
+        stroke="url(#garlandGrad)"
+        stroke-width="4"
+        fill="none"
+        stroke-linecap="round"
+      />
+
+      <!-- Ornaments -->
+      <circle cx="150" cy="50" r="15" fill="#FF6B6B" opacity="0.9" />
+      <circle cx="300" cy="50" r="15" fill="#6BCB77" opacity="0.9" />
+      <circle cx="450" cy="50" r="15" fill="#4D96FF" opacity="0.9" />
+      <circle cx="600" cy="50" r="15" fill="#FF9F1C" opacity="0.9" />
+      <circle cx="750" cy="50" r="15" fill="#D157A0" opacity="0.9" />
+      <circle cx="900" cy="50" r="15" fill="#FF6B6B" opacity="0.9" />
+      <circle cx="1050" cy="50" r="15" fill="#6BCB77" opacity="0.9" />
+
+      <!-- Holly leaves (decorative) -->
+      <text x="75" y="80" font-size="24" fill="#6BCB77">🎄</text>
+      <text x="225" y="80" font-size="24" fill="#FF6B6B">🎄</text>
+      <text x="525" y="80" font-size="24" fill="#FFD700">🎄</text>
+      <text x="825" y="80" font-size="24" fill="#6BCB77">🎄</text>
+      <text x="1125" y="80" font-size="24" fill="#FF6B6B">🎄</text>
+    </svg>
+
+    <div class="container">
+      <div class="header">
+        <h1>🎁 Secret Santa Reveal 🎁</h1>
+        <p>Unwrap your Secret Santa recipient!</p>
+      </div>
+
+      <div class="instructions">
+        <h3>📝 How to Play:</h3>
+        <p>
+          1️⃣ Enter your token in the text field<br />
+          2️⃣ Click the gift box or "Reveal" button<br />
+          3️⃣ Your Secret Santa recipient will be revealed!<br />
+          4️⃣ Celebrate and plan your gift! 🎉
+        </p>
+      </div>
+
+      <div id="message" class="message"></div>
+
+      <div class="gift-section">
+        <div class="gift-box" id="giftBox" onclick="revealRecipient()">
+          <div class="gift-box-inner">
+            <div class="gift-front">🎁</div>
+            <div class="gift-back">✨</div>
+          </div>
+          <div class="gift-ribbon gift-ribbon-h"></div>
+          <div class="gift-ribbon gift-ribbon-v"></div>
+          <div class="gift-bow"></div>
+        </div>
+      </div>
+
+      <div class="input-section">
+        <label for="tokenInput">Enter Your Token:</label>
+        <div class="input-group">
+          <input
+            type="text"
+            id="tokenInput"
+            placeholder="XXXXXX"
+            maxlength="6"
+            autofocus
+          />
+          <button
+            class="btn-primary"
+            id="revealBtn"
+            onclick="revealRecipient()"
+          >
+            Reveal
+          </button>
+        </div>
+      </div>
+
+      <div class="result-section" id="resultSection">
+        <h2>🎉 Your Secret Santa Recipient Is: 🎉</h2>
+        <div class="recipient-name" id="recipientName"></div>
+        <p style="color: #065f46; font-size: 1.05em; margin-top: 15px">
+          Now plan an amazing gift! Remember to keep it a secret! 🤫
+        </p>
+      </div>
+    </div>
+
+    <script>
+      const csrfToken = "{{ csrf_token }}" || "";
+
+      function showMessage(message, type = "success") {
+        const messageEl = document.getElementById("message");
+        messageEl.textContent = message;
+        messageEl.className = `message show ${type}`;
+
+        if (type !== "loading") {
+          setTimeout(() => {
+            messageEl.classList.remove("show");
+          }, 4000);
+        }
+      }
+
+      function createConfetti() {
+        const colors = [
+          "#FF6B6B",
+          "#FFD166",
+          "#6BCB77",
+          "#4D96FF",
+          "#FF9F1C",
+          "#D157A0",
+        ];
+        const confettiCount = 50;
+
+        for (let i = 0; i < confettiCount; i++) {
+          const confetti = document.createElement("div");
+          confetti.classList.add("confetti");
+          confetti.style.left = Math.random() * window.innerWidth + "px";
+          confetti.style.top = "0px";
+          confetti.style.backgroundColor =
+            colors[Math.floor(Math.random() * colors.length)];
+          confetti.style.width = Math.random() * 10 + 5 + "px";
+          confetti.style.height = confetti.style.width;
+          confetti.style.borderRadius = "50%";
+
+          document.body.appendChild(confetti);
+
+          const duration = Math.random() * 2 + 2;
+          const xMove = (Math.random() - 0.5) * 400;
+
+          confetti.animate(
+            [
+              {
+                transform: "translateY(0px) translateX(0px) rotate(0deg)",
+                opacity: 1,
+              },
+              {
+                transform: `translateY(${
+                  window.innerHeight
+                }px) translateX(${xMove}px) rotate(${Math.random() * 360}deg)`,
+                opacity: 0,
+              },
+            ],
+            {
+              duration: duration * 1000,
+              easing: "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+              fill: "forwards",
+            }
+          );
+
+          setTimeout(() => confetti.remove(), duration * 1000);
+        }
+      }
+
+      function revealRecipient() {
+        const tokenInput = document.getElementById("tokenInput");
+        const token = tokenInput.value.trim().toUpperCase();
+        const revealBtn = document.getElementById("revealBtn");
+        const giftBox = document.getElementById("giftBox");
+
+        if (!token) {
+          showMessage("❌ Please enter your token!", "error");
+          tokenInput.focus();
+          return;
+        }
+
+        revealBtn.disabled = true;
+        tokenInput.disabled = true;
+        giftBox.style.pointerEvents = "none";
+
+        showMessage("🔄 Revealing your secret...", "loading");
+
+        fetch('{% url "secret_santa:reveal_recipient" %}', {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken,
+          },
+          body: JSON.stringify({ token: token }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              giftBox.classList.add("revealed");
+              document.getElementById("recipientName").textContent =
+                data.recipient;
+              document.getElementById("resultSection").classList.add("show");
+              showMessage(`✅ ${data.message}`, "success");
+              createConfetti();
+            } else {
+              showMessage(`❌ ${data.message}`, "error");
+              revealBtn.disabled = false;
+              tokenInput.disabled = false;
+              giftBox.style.pointerEvents = "auto";
+              tokenInput.focus();
+            }
+          })
+          .catch((error) => {
+            showMessage(`❌ Error: ${error}`, "error");
+            revealBtn.disabled = false;
+            tokenInput.disabled = false;
+            giftBox.style.pointerEvents = "auto";
+            tokenInput.focus();
+          });
+      }
+
+      // Support Enter key
+      document
+        .getElementById("tokenInput")
+        .addEventListener("keypress", function (e) {
+          if (e.key === "Enter") {
+            revealRecipient();
+          }
+        });
+
+      // Create snowflakes
+      function createSnowflake() {
+        const snowContainer = document.getElementById("snow");
+        const snowflake = document.createElement("div");
+        snowflake.classList.add("snowflake");
+        snowflake.textContent = "❄️";
+        snowflake.style.left = Math.random() * window.innerWidth + "px";
+        snowflake.style.fontSize = Math.random() * 10 + 15 + "px";
+        snowflake.style.animationDuration = Math.random() * 8 + 8 + "s";
+        snowContainer.appendChild(snowflake);
+
+        setTimeout(() => snowflake.remove(), 16000);
+      }
+
+      // Create snowflakes continuously
+      setInterval(createSnowflake, 300);
+
+      // Initial snowflakes
+      for (let i = 0; i < 20; i++) {
+        setTimeout(createSnowflake, i * 150);
+      }
+    </script>
+  </body>
+</html>

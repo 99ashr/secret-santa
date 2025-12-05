@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Secret Santa Admin - Generate Draws</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #0b3b2e 0%, #062a3f 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        position: relative;
+        overflow-x: hidden;
+      }
+
+      /* Snow effect */
+      .snow {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      .snowflake {
+        position: absolute;
+        top: -10px;
+        z-index: 1;
+        user-select: none;
+        cursor: default;
+        animation: snowfall linear forwards;
+        opacity: 0.8;
+      }
+
+      @keyframes snowfall {
+        to {
+          transform: translateY(100vh) translateX(100px);
+          opacity: 0;
+        }
+      }
+
+      /* SVG Garland */
+      .garland-svg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 150px;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .container {
+        max-width: 800px;
+        width: 100%;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        z-index: 10;
+        position: relative;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 40px;
+      }
+
+      .header h1 {
+        font-size: 2.5em;
+        color: #0b3b2e;
+        margin-bottom: 10px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .header p {
+        color: #666;
+        font-size: 1.1em;
+        margin-bottom: 20px;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 40px;
+      }
+
+      .stat-card {
+        background: linear-gradient(135deg, #ffd166 0%, #ff9f1c 100%);
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        color: white;
+        box-shadow: 0 5px 15px rgba(255, 157, 26, 0.3);
+      }
+
+      .stat-card h3 {
+        font-size: 0.9em;
+        opacity: 0.9;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .stat-card .number {
+        font-size: 2.5em;
+        font-weight: bold;
+      }
+
+      .actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        margin-bottom: 30px;
+      }
+
+      button {
+        padding: 15px 25px;
+        font-size: 1.1em;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+        color: white;
+        grid-column: span 2;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(6, 182, 212, 0.4);
+      }
+
+      .btn-primary:active {
+        transform: translateY(-1px);
+      }
+
+      .btn-secondary {
+        background: #f3f4f6;
+        color: #0b3b2e;
+        border: 2px solid #0b3b2e;
+      }
+
+      .btn-secondary:hover {
+        background: #0b3b2e;
+        color: white;
+        transform: translateY(-3px);
+      }
+
+      .btn-secondary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .tokens-section {
+        margin-top: 40px;
+        padding-top: 40px;
+        border-top: 2px solid #e5e7eb;
+      }
+
+      .tokens-section h2 {
+        color: #0b3b2e;
+        margin-bottom: 20px;
+        font-size: 1.5em;
+      }
+
+      .tokens-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+        max-height: 400px;
+        overflow-y: auto;
+        display: block;
+      }
+
+      .tokens-table thead {
+        position: sticky;
+        top: 0;
+        background: #0b3b2e;
+        color: white;
+      }
+
+      .tokens-table th,
+      .tokens-table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #e5e7eb;
+      }
+
+      .tokens-table tbody tr:hover {
+        background: #f9fafb;
+      }
+
+      .tokens-table tbody tr:nth-child(even) {
+        background: #f9fafb;
+      }
+
+      .token-badge {
+        background: #ffd166;
+        color: #0b3b2e;
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-family: "Courier New", monospace;
+        font-weight: bold;
+        display: inline-block;
+      }
+
+      .message {
+        padding: 15px 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        display: none;
+        animation: slideIn 0.3s ease;
+      }
+
+      .message.show {
+        display: block;
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .message.success {
+        background: #d1fae5;
+        color: #065f46;
+        border-left: 4px solid #10b981;
+      }
+
+      .message.error {
+        background: #fee2e2;
+        color: #7f1d1d;
+        border-left: 4px solid #ef4444;
+      }
+
+      .message.loading {
+        background: #dbeafe;
+        color: #1e40af;
+        border-left: 4px solid #3b82f6;
+      }
+
+      .loading-spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top: 2px solid white;
+        animation: spin 0.8s linear infinite;
+        margin-right: 10px;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .link-section {
+        text-align: center;
+        margin-top: 40px;
+        padding-top: 30px;
+        border-top: 2px solid #e5e7eb;
+      }
+
+      .link-section a {
+        display: inline-block;
+        padding: 12px 25px;
+        background: #f3f4f6;
+        color: #0b3b2e;
+        text-decoration: none;
+        border-radius: 8px;
+        border: 2px solid #0b3b2e;
+        transition: all 0.3s ease;
+        font-weight: 600;
+      }
+
+      .link-section a:hover {
+        background: #0b3b2e;
+        color: white;
+      }
+
+      @media (max-width: 600px) {
+        .container {
+          padding: 25px;
+        }
+
+        .header h1 {
+          font-size: 1.8em;
+        }
+
+        .actions {
+          grid-template-columns: 1fr;
+        }
+
+        .btn-primary {
+          grid-column: span 1;
+        }
+
+        .stats {
+          grid-template-columns: 1fr;
+        }
+
+        .tokens-table {
+          font-size: 0.9em;
+        }
+
+        .tokens-table th,
+        .tokens-table td {
+          padding: 8px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Snow background -->
+    <div class="snow" id="snow"></div>
+
+    <!-- SVG Garland -->
+    <svg
+      class="garland-svg"
+      viewBox="0 0 1200 150"
+      preserveAspectRatio="xMidYMid slice"
+    >
+      <defs>
+        <linearGradient id="garlandGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color: #d4af37; stop-opacity: 1" />
+          <stop offset="50%" style="stop-color: #ffd700; stop-opacity: 1" />
+          <stop offset="100%" style="stop-color: #d4af37; stop-opacity: 1" />
+        </linearGradient>
+      </defs>
+
+      <!-- Garland line -->
+      <path
+        d="M0,50 Q150,20 300,50 T600,50 T900,50 T1200,50"
+        stroke="url(#garlandGrad)"
+        stroke-width="4"
+        fill="none"
+        stroke-linecap="round"
+      />
+
+      <!-- Ornaments -->
+      <circle cx="150" cy="50" r="15" fill="#FF6B6B" opacity="0.9" />
+      <circle cx="300" cy="50" r="15" fill="#6BCB77" opacity="0.9" />
+      <circle cx="450" cy="50" r="15" fill="#4D96FF" opacity="0.9" />
+      <circle cx="600" cy="50" r="15" fill="#FF9F1C" opacity="0.9" />
+      <circle cx="750" cy="50" r="15" fill="#D157A0" opacity="0.9" />
+      <circle cx="900" cy="50" r="15" fill="#FF6B6B" opacity="0.9" />
+      <circle cx="1050" cy="50" r="15" fill="#6BCB77" opacity="0.9" />
+
+      <!-- Holly leaves (decorative) -->
+      <text x="75" y="80" font-size="24" fill="#6BCB77">🎄</text>
+      <text x="225" y="80" font-size="24" fill="#FF6B6B">🎄</text>
+      <text x="525" y="80" font-size="24" fill="#FFD700">🎄</text>
+      <text x="825" y="80" font-size="24" fill="#6BCB77">🎄</text>
+      <text x="1125" y="80" font-size="24" fill="#FF6B6B">🎄</text>
+    </svg>
+
+    <div class="container">
+      <div class="header">
+        <h1>🎅 Secret Santa Draw Generator 🎅</h1>
+        <p>Admin Panel - Generate and Manage Secret Santa Draws</p>
+      </div>
+
+      <div id="message" class="message"></div>
+
+      <div class="stats">
+        <div class="stat-card">
+          <h3>Total Participants</h3>
+          <div class="number">{{ participant_count }}</div>
+        </div>
+        <div class="stat-card">
+          <h3>Current Draws</h3>
+          <div class="number" id="drawCount">{{ draw_count }}</div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn-primary" id="generateBtn" onclick="generateDraw()">
+          🎁 Generate Secret Santa Draw
+        </button>
+        <button class="btn-secondary" onclick="showTokens()">
+          📋 Show All Tokens
+        </button>
+        <button
+          class="btn-secondary"
+          onclick="clearDraw()"
+          style="color: #ef4444; border-color: #ef4444"
+        >
+          🗑️ Clear Draw
+        </button>
+      </div>
+
+      <div class="tokens-section" id="tokensSection" style="display: none">
+        <h2>🎫 Generated Tokens</h2>
+        <table class="tokens-table" id="tokensTable">
+          <thead>
+            <tr>
+              <th>Token</th>
+              <th>Assigned To (Giver)</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody id="tokensBody"></tbody>
+        </table>
+        <button
+          class="btn-secondary"
+          onclick="printTokens()"
+          style="width: 100%"
+        >
+          🖨️ Print Tokens for Distribution
+        </button>
+      </div>
+
+      <div class="link-section">
+        <p style="color: #666; margin-bottom: 15px">
+          Share this link with participants to reveal their recipients:
+        </p>
+        <a href="{% url 'secret_santa:participant' %}" target="_blank"
+          >👉 Participant Reveal Page</a
+        >
+      </div>
+    </div>
+
+    <script>
+      const csrfToken = "{{ csrf_token }}";
+
+      function showMessage(message, type = "success") {
+        const messageEl = document.getElementById("message");
+        messageEl.textContent = message;
+        messageEl.className = `message show ${type}`;
+
+        if (type !== "loading") {
+          setTimeout(() => {
+            messageEl.classList.remove("show");
+          }, 4000);
+        }
+      }
+
+      function generateDraw() {
+        const btn = document.getElementById("generateBtn");
+        btn.disabled = true;
+
+        showMessage("🔄 Generating Secret Santa draw...", "loading");
+
+        fetch('{% url "secret_santa:generate_draw" %}', {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken,
+          },
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              showMessage(`✅ ${data.message}`, "success");
+              document.getElementById("drawCount").textContent = data.count;
+              setTimeout(() => showTokens(), 1500);
+            } else {
+              showMessage(`❌ ${data.message}`, "error");
+            }
+          })
+          .catch((error) => {
+            showMessage(`❌ Error: ${error}`, "error");
+            console.error("Error:", error);
+          })
+          .finally(() => {
+            btn.disabled = false;
+          });
+      }
+
+      function showTokens() {
+        fetch('{% url "secret_santa:show_tokens" %}')
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              const tbody = document.getElementById("tokensBody");
+              tbody.innerHTML = "";
+
+              data.tokens.forEach((token) => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                        <td><span class="token-badge">${token.token}</span></td>
+                        <td>${token.giver}</td>
+                        <td>${token.created_at}</td>
+                    `;
+              });
+
+              document.getElementById("tokensSection").style.display = "block";
+              showMessage(`📋 Loaded ${data.total} tokens`, "success");
+            } else {
+              showMessage(`❌ ${data.message}`, "error");
+            }
+          })
+          .catch((error) => {
+            showMessage(`❌ Error loading tokens: ${error}`, "error");
+            console.error("Error:", error);
+          });
+      }
+
+      function printTokens() {
+        const table = document.getElementById("tokensTable");
+        const printWindow = window.open("", "", "height=600,width=900");
+
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Secret Santa Tokens - Print</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 20px; }
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+                    th, td { border: 1px solid #333; padding: 12px; text-align: left; }
+                    th { background-color: #0b3b2e; color: white; }
+                    tr:nth-child(even) { background-color: #f9f9f9; }
+                    h1 { text-align: center; color: #0b3b2e; }
+                    .footer { text-align: center; margin-top: 20px; color: #666; }
+                    .token { font-family: monospace; font-weight: bold; background: #FFD166; padding: 5px 10px; border-radius: 5px; }
+                </style>
+            </head>
+            <body>
+                <h1>🎅 Secret Santa - Token Distribution 🎅</h1>
+                ${table.outerHTML}
+                <div class="footer">
+                    <p>Each token should be given to the corresponding giver.</p>
+                    <p>They will use it to reveal their Secret Santa recipient on the participant page.</p>
+                </div>
+            </body>
+            </html>
+        `;
+
+        printWindow.document.write(html);
+        printWindow.document.close();
+        setTimeout(() => printWindow.print(), 250);
+      }
+
+      function clearDraw() {
+        if (
+          confirm(
+            "⚠️ Are you sure? This will delete all current draws and tokens. This action cannot be undone!"
+          )
+        ) {
+          showMessage("🔄 Clearing draw...", "loading");
+
+          fetch('{% url "secret_santa:clear_draw" %}', {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": csrfToken,
+            },
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.success) {
+                showMessage(`✅ ${data.message}`, "success");
+                document.getElementById("drawCount").textContent = "0";
+                document.getElementById("tokensSection").style.display = "none";
+              } else {
+                showMessage(`❌ ${data.message}`, "error");
+              }
+            })
+            .catch((error) => {
+              showMessage(`❌ Error: ${error}`, "error");
+              console.error("Error:", error);
+            });
+        }
+      }
+
+      // Create snowflakes
+      function createSnowflake() {
+        const snowContainer = document.getElementById("snow");
+        const snowflake = document.createElement("div");
+        snowflake.classList.add("snowflake");
+        snowflake.textContent = "❄️";
+        snowflake.style.left = Math.random() * window.innerWidth + "px";
+        snowflake.style.fontSize = Math.random() * 10 + 15 + "px";
+        snowflake.style.animationDuration = Math.random() * 8 + 8 + "s";
+        snowContainer.appendChild(snowflake);
+
+        setTimeout(() => snowflake.remove(), 16000);
+      }
+
+      // Create snowflakes continuously
+      setInterval(createSnowflake, 300);
+
+      // Initial snowflakes
+      for (let i = 0; i < 20; i++) {
+        setTimeout(createSnowflake, i * 150);
+      }
+    </script>
+  </body>
+</html>
