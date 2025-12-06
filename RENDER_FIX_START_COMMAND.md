@@ -23,20 +23,23 @@ Click **"Settings"** at the top of your service page.
 
 Scroll down to find **"Start Command"** field.
 
-### Step 3: Clear the Start Command Field
+### Step 3: Set the Correct Start Command
 
 - Select ALL the text in the **Start Command** field
-- Delete it (leave it EMPTY)
+- **Replace it with:**
+  ```
+  gunicorn secret_santa_config.wsgi:application --bind 0.0.0.0:$PORT
+  ```
 - Click **"Save"**
 
-This tells Render: "Use the Procfile instead of this field"
+This tells Render to run your Django WSGI application correctly.
 
 ---
 
 ## What Happens
 
 1. Render will auto-restart your service
-2. Render reads your `Procfile` (which you pushed)
+2. Render uses your **Start Command** field (now pointing to correct WSGI)
 3. Render runs: `gunicorn secret_santa_config.wsgi:application --bind 0.0.0.0:$PORT` ✅
 4. Your app starts successfully!
 
@@ -53,7 +56,7 @@ Click "Settings" tab
   ↓
 Scroll to "Start Command" field
   ↓
-CLEAR the field (delete all text)
+REPLACE text with: gunicorn secret_santa_config.wsgi:application --bind 0.0.0.0:$PORT
   ↓
 Click "Save" button
   ↓
@@ -78,25 +81,29 @@ Check Logs for "Service is live" ✅
 ## Why This Happens
 
 - Render tries to auto-detect your app type (Flask, Django, etc.)
-- If it doesn't find a Procfile or misreads it, it sets default Start Command
-- When you specify a custom Start Command in UI, it overrides the Procfile
-- Solution: Leave Start Command empty, let Procfile control everything
+- It mistakenly guesses `gunicorn app:app` (Flask format) instead of Django
+- The **Start Command field in the UI overrides your Procfile**
+- Solution: Set Start Command to the correct Django WSGI path
 
 ---
 
 ## Troubleshooting
 
-**If you still see "ModuleNotFoundError: No module named 'app'" after clearing:**
+**If you still see "ModuleNotFoundError: No module named 'app'" after setting Start Command:**
 
 1. Go to Settings
-2. Scroll to "Build Command" and "Start Command"
-3. Make sure BOTH are empty (let Procfile control)
+2. Check "Start Command" field — make sure it says:
+   ```
+   gunicorn secret_santa_config.wsgi:application --bind 0.0.0.0:$PORT
+   ```
+3. If it's different, replace it with the above
 4. Click "Save"
-5. Render may ask to confirm — click "Restart Service"
+5. Render restarts automatically
 6. Wait 3-5 minutes
 
 **If it still fails:**
-- Check Logs tab
+
+- Check Logs tab for new error message
 - Paste the error here
 - I'll help debug
 
@@ -108,11 +115,11 @@ Check Logs for "Service is live" ✅
 - [ ] Go to secret-santa service
 - [ ] Click Settings tab
 - [ ] Find "Start Command" field
-- [ ] DELETE all text in it (leave EMPTY)
+- [ ] Replace with: `gunicorn secret_santa_config.wsgi:application --bind 0.0.0.0:$PORT`
 - [ ] Click "Save"
 - [ ] Wait 2-3 min for restart
 - [ ] Check Logs for "Service is live"
-- [ ] If live, open app URL
+- [ ] If live, open app URL: `https://secret-santa-xxxxx.onrender.com/`
 - [ ] If error, paste error here
 
 **Do this now and your app should go live!** 🚀
